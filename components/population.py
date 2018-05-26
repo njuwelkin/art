@@ -1,8 +1,9 @@
+from multiprocessing import Pool
 from .individual import IndividualBase
 
 class Population(object):
 
-    def __init__(self, indv_template, size=100):
+    def __init__(self, indv_template, fitness, size=100):
         '''
         Class for representing population in genetic algorithm.
 
@@ -22,6 +23,8 @@ class Population(object):
         self._updated = False
 
         self._individuals = []
+
+        self._calc = MultTaskCalFitness(4, fitness)
 
     def init(self, indvs=None):
         '''
@@ -120,10 +123,54 @@ class Population(object):
         all_fits = self.all_fits(fitness)
         return sum(all_fits)/len(all_fits)
 
+
+
     def all_fits(self, fitness):
         '''
         Get all fitness values in population.
         '''
         if self._updated:
-            self._fitness = [fitness(indv) for indv in self._individuals]
+            self._updated = False
+            #self._fitness = [fitness(indv) for indv in self._individuals]
+            self._fitness = self._calc.calculate(self._individuals)
         return self._fitness
+
+
+
+def cal_fitness_task(idx, part, fitness):
+    return (idx, [fitness(a) for a in part])
+
+class MultTaskCalFitness(object):
+    def __init__(self, processes, fitness):
+        self.processes = processes
+        self.pool = Pool(processes=4)
+        self.fitness = fitness
+
+    def calculate(self, l):
+        results= []
+        start = 0
+        total_len = len(l)
+        part_len = total_len / self.processes
+        for i in range(0, self.processes):
+            end = start+part_len
+            if end > total_len:
+                end = total_len
+
+            part = l[start:start+part_len]
+            ret = self.pool.apply_async(cal_fitness_task, args=(i, part, self.fitness))
+            results.append(ret)
+
+        real_results = [r.get() for r in results]
+        real_results = sorted(real_results, key=lambda a: a[0])
+        
+        ret = []
+        for r in real_results:
+            ret.extend(r[1])
+        return ret
+
+
+
+
+
+
+

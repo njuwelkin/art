@@ -48,30 +48,40 @@ class Engine(object):
         self.mutation = mutation
         self.fitness = fitness
 
+    def snapshot(self, best_indv, g, max):
+        ac = drawCanvas(best_indv.solution)
+        ac.save("./output/g%s_fit%s.jpg" % (g, max))
+
     def run(self, ng=1000):
+        latestDrawMax = 0.5
         for g in range(ng):
             print("Generation %s start on %s" % (g, datetime.now()))
             best_indv = self.population.best_indv(self.fitness)
+            max = self.population.max(self.fitness)
+            if max / latestDrawMax > 1.1:
+                self.snapshot(best_indv, g, max)
+                latestDrawMax = max
+
             print("	max fitness %s" % self.population.max(self.fitness))
-            print("	")
+            print("	min fitness %s" % self.population.min(self.fitness))
 
             indvs = []
             local_size = self.population.size // 2
             for _ in range(local_size):
-                print("	%s" % _)
                 parents = self.selection.select(self.population, fitness=self.fitness)
                 children = self.crossover.cross(*parents)
                 children = [self.mutation.mutate(child, self) for child in children]
                 indvs.extend(children)
-                indvs[0] = best_indv
-                self.population.individuals = indvs
-                self.population.update_flag()
+
+            indvs[0] = best_indv
+            self.population._individuals = indvs
+            self.population.update_flag()
                 
 
 
 if __name__ == '__main__':
     art = ArtIndividual()
-    population = Population(indv_template=art, size=1000)
+    population = Population(indv_template=art, fitness=fitness, size=1000)
     population.init()
 
     selection = RouletteWheelSelection()
@@ -79,7 +89,7 @@ if __name__ == '__main__':
     mutation = Mutation(pm=0.1)
 
     engine = Engine(population, selection, crossover, mutation, fitness)
-    engine.run()
+    engine.run(ng=20000)
 
     ########## test code ###########
     if False:

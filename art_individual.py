@@ -22,6 +22,7 @@ class ArtIndividual(IndividualBase):
         '''
         chromsome = self.solution.view()
         chromsome.shape = self.nodes * self.line_per_nodes
+        #chromsome.shape = (self.nodes, self.line_per_nodes)
 
         return chromsome
 
@@ -35,7 +36,7 @@ class ArtIndividual(IndividualBase):
 
     def _rand_solution(self):
         solution = np.random.random((self.nodes, self.line_per_nodes)) * self.nodes
-        solution=np.array(solution, dtype="uint8")
+        solution = np.array(solution, dtype="uint8")
         return solution
 
 

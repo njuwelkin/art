@@ -3,8 +3,8 @@
 
 from random import random
 from bisect import bisect_right
-#from itertools import accumulate
 
+from datetime import datetime
 
 class RouletteWheelSelection(object):
     def __init__(self):

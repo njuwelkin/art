@@ -33,6 +33,9 @@ class ArtCanvas(object):
             self._v = cv2.resize(self._canvas, (VLen, VLen)).reshape(VLen*VLen)
         return self._v
 
+    def save(self, path):
+        cv2.imwrite(path, self._canvas)
+
 
 if __name__ == '__main__':
     ac = ArtCanvas()
