@@ -32,7 +32,8 @@ class RouletteWheelSelection(object):
         # Create roulette wheel.
         sum_fit = sum(fit)
         wheel = self.accumulate([i/sum_fit for i in fit])
-
+        wheel[population.size - 1] = 1.0
+        
         # Select a father and a mother.
         father_idx = bisect_right(wheel, random())
         father = population[father_idx]

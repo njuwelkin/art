@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from components.population import *
+from art_population import *
 from operators.uniform_crossover import *
 from operators.roulette_wheel_selection import *
 
@@ -23,9 +23,8 @@ def gen_weight():
 
 def drawCanvas(solution):
     ac = ArtCanvas()
-    for i in range(0, len(solution)):
-        for target in solution[i]:
-            ac.line(i, target)
+    for s in solution:
+        ac.line(s[0], s[1])
     return ac
 
 ap = ArtPortrait("./portrait.png")
@@ -39,31 +38,49 @@ def fitness(indv):
     d2 = sum(w * ((v1 - v2) ** 2))
     return (maxD2 / (d2 + 1))
 
+def display(indv):
+    ac = drawCanvas(indv.solution)
+    cv2.imshow("cv2", ac._canvas)
+    cv2.waitKey(100)
 
 class Engine(object):
-    def __init__(self, population, selection, crossover, mutation, fitness):
+    def __init__(self, population, selection, crossover, mutation, fitness, ng):
         self.population = population
         self.selection = selection
         self.crossover = crossover
         self.mutation = mutation
         self.fitness = fitness
+        self.ng = ng
 
     def snapshot(self, best_indv, g, max):
         ac = drawCanvas(best_indv.solution)
         ac.save("./output/g%s_fit%s.jpg" % (g, max))
 
-    def run(self, ng=1000):
+    def changePm(self, g):
+        if g == self.ng / 10:
+            self.mutation.setPm(0.1)
+        elif g == self.ng / 100:
+            self.mutation.setPm(0.125)
+        elif g == 0:
+            self.mutation.setPm(0.15)
+
+    def run(self):
         latestDrawMax = 0.5
-        for g in range(ng):
+        for g in range(self.ng):
+            self.changePm(g)
             print("Generation %s start on %s" % (g, datetime.now()))
             best_indv = self.population.best_indv(self.fitness)
             max = self.population.max(self.fitness)
+
+            #display(best_indv)
             if max / latestDrawMax > 1.1:
                 self.snapshot(best_indv, g, max)
                 latestDrawMax = max
 
             print("	max fitness %s" % self.population.max(self.fitness))
             print("	min fitness %s" % self.population.min(self.fitness))
+            print("	total edges of best_indv: %s" % best_indv._chromsome.sum())
+
 
             indvs = []
             local_size = self.population.size // 2
@@ -78,34 +95,51 @@ class Engine(object):
             self.population.update_flag()
                 
 
-
+ARTDEBUG = False
 if __name__ == '__main__':
-    art = ArtIndividual()
-    population = Population(indv_template=art, fitness=fitness, size=1000)
-    population.init()
+    if not ARTDEBUG:
+        population = Population(fitness=fitness, size=1000)
+        population.init()
 
-    selection = RouletteWheelSelection()
-    crossover = UniformCrossover(pc=0.8, pe=0.5)
-    mutation = Mutation(pm=0.1)
+        selection = RouletteWheelSelection()
+        crossover = UniformCrossover(pc=0.8, pe=0.5)
+        mutation = Mutation(pm=0.4)
 
-    engine = Engine(population, selection, crossover, mutation, fitness)
-    engine.run(ng=20000)
+        engine = Engine(population, selection, crossover, mutation, fitness, 50000)
+
+        #cv2.namedWindow("cv2", 1)
+        engine.run()
+        #cv2.destroyAllWindows()
+
+
 
     ########## test code ###########
-    if False:
-	    #selection.select(population, fitness)
-	    art2 = ArtIndividual()
+    else:
+        print "p = Population(fitness=fitness, size=1000)"
+        p = Population(fitness=fitness, size=1000)
+        print "p.init()"
+        p.init()
+        print "best_indv = p.best_indv(fitness)"
+        print datetime.now()
+        best_indv = p.best_indv(fitness)
+        print datetime.now()
+        print p.max(fitness)
 
-	    for i in range(0, 10):
-		art3, art4 = crossover.cross(art, art2)
-		print("(%s, %s)" % (sum(art3.chromsome - art.chromsome), sum(art4.chromsome - art2.chromsome)))
+        selection = RouletteWheelSelection()
+        art1, art2 = selection.select(p, fitness)
+        
 
-	    for i in range(0, 20):
-		art3 = art.clone()
-		mutation.mutate(art)
-		if sum(art.chromsome - art3.chromsome) !=0:
-		    print(sum(art.chromsome - art3.chromsome))
+        crossover = UniformCrossover(pc=0.8, pe=0.5)
+        for i in range(0, 10):
+            art3, art4 = crossover.cross(art1, art2)
+            print("(%s, %s)" % (sum(art3._chromsome ^ art1._chromsome), sum(art4._chromsome ^ art2._chromsome)))
 
+        mutation = Mutation(pm=0.1)
+        for i in range(0, 20):
+            art3 = art1.clone()
+            mutation.mutate(art1)
+            if sum(art1._chromsome ^ art3._chromsome) !=0:
+                print(sum(art1._chromsome ^ art3._chromsome))
 
 
 

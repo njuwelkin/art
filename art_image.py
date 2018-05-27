@@ -13,14 +13,14 @@ class ArtPortrait(object):
         return self._v
 
 class ArtCanvas(object):
-    Size = (EdgePerNode - 1) * 128
+    Size = 4096
     R = Size/2
     Center = (R, R)
     Anchors = [(R-int(cos(i*2*pi/Nodes)*R), R+int(sin(i*2*pi/Nodes)*R)) for i in range(0, Nodes)]
 
     def __init__(self):
         self._canvas = np.ones((ArtCanvas.Size, ArtCanvas.Size), dtype="uint8") *255
-        self._updated = False
+        self._updated = True
 
 
     def line(self, idx1, idx2):
@@ -31,6 +31,7 @@ class ArtCanvas(object):
     def v(self):
         if self._updated:
             self._v = cv2.resize(self._canvas, (VLen, VLen)).reshape(VLen*VLen)
+            self._updated = False
         return self._v
 
     def save(self, path):

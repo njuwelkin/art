@@ -1,76 +1,91 @@
 from copy import deepcopy
-from components.individual import IndividualBase
 import numpy as np
+from scipy import sparse
 
 from art_config import *
 
-class ArtIndividual(IndividualBase):
-    def __init__(self, nodes = Nodes, line_per_node = EdgePerNode):
 
-        self.nodes = nodes
-        self.line_per_nodes = line_per_node
-        ranges = [(0, line_per_node)] * nodes
+def _initTemplet():
+	chrom = np.zeros(AllPossibleEdges, dtype="bool")
+	mat = np.zeros((Nodes, Nodes), dtype="bool")
 
-        super(self.__class__, self).__init__()
+	edgePerNode = Edges*2 / Nodes
+	step = Nodes / (2 * edgePerNode)
+	for i in range(0, Nodes):
+	    j= (i + step) % Nodes
+	    for k in range(0, edgePerNode/2):
+		if i < j:
+		    mat[i, j] = True
+		else:
+		    mat[j, i] = True
+		j = (j + step) % Nodes
 
-        # Initialize individual randomly.
-        self.init()
+	start = 0
+	for i in range(0, Nodes):
+	    length = Nodes - i - 1
+	    chrom[start: start + length] = mat[i, Nodes-length:Nodes]
+	    start += length
+	return chrom.reshape((AllPossibleEdges/GenLen, GenLen))
+      
 
-    def encode(self):
-        '''
-        Encode solution to gene sequence in individual using different encoding.
-        '''
-        chromsome = self.solution.view()
-        chromsome.shape = self.nodes * self.line_per_nodes
-        #chromsome.shape = (self.nodes, self.line_per_nodes)
-
-        return chromsome
-
-    def decode(self):
-        ''' 
-        Decode gene sequence to solution of target function.
-        '''
-        solution =  self.chromsome.view()
-        solution.shape = self.nodes, self.line_per_nodes
-        return solution
-
-    def _rand_solution(self):
-        solution = np.random.random((self.nodes, self.line_per_nodes)) * self.nodes
-        solution = np.array(solution, dtype="uint8")
-        return solution
+_chromTemplet = _initTemplet()
 
 
-AllPossibleEdges = Nodes * (Nodes - 1) / 2
-Edges = 1000
-Dencity = float(Edges) / AllPossibleEdges
-
-class ArtIndividual2(IndividualBase):
+class ArtIndividual(object):
     """
     variable-length encoding
     """
-    def __init__(self, randomChrom = False):
+    #mask = ~ np.tril(np.ones((Nodes, Nodes), dtype="bool"))
+
+    def __init__(self, initMethod = 0):
         super(self.__class__, self).__init__()
 
-        if randomChrom:
-            len = Nodes * (Nodes - 1) / 2
+        if initMethod == 1:    # random
             tmp = np.random.random(AllPossibleEdges)
-            self.chromsome = (tmp < Dencity)
-            self.init(chromsome=self.chromsome)
-        else:
-            self.init()
+            chrom = (tmp < Dencity).reshape((AllPossibleEdges/GenLen, GenLen))
+            self.setChrom(chrom)
+        elif initMethod == 2:
+            chrom = _chromTemplet.copy()
+            self.setChrom(chrom)
 
-    def encode(self):
-        pass
+    def setChrom(self, chrom):
+        assert chrom.size == AllPossibleEdges
+        self.chromsome = chrom
+        self._chromsome = chrom.ravel()
+        self._gen_chrom_mat()
+        self._gen_solution()
 
-    def decode(self):
-        p = 0
-        solution = []
-        for i in range(0, Nodes):
-            for j in range(i+1, Nodes):
-                if self.chromsome[p]:
-                    solution.append((i, j))
-                p += 1
+    def _gen_solution(self):
+        coo = sparse.coo_matrix(self.mat)
+        self.solution = np.array(zip(coo.row, coo.col), dtype="uint8")
+
+    def _gen_chrom_mat(self):
+        mat = np.zeros((Nodes, Nodes), dtype="bool")
+        start = 0
+        len = Nodes - 1
+        for i in range(0, Nodes-1):
+            mat[i, i+1: Nodes] = self._chromsome[start: start+len]
+            start += len
+            len -= 1
+        self.mat = mat
+
+    def clone(self):
+        indv = self.__class__()
+        indv.setChrom(self.chromsome.copy())
+        return indv
+
+
 
 
 if __name__ == '__main__':
-    lines = ArtIndividual()
+    a=ArtIndividual(2)
+    print "***************"
+    print a.chromsome
+    print len(a.chromsome)
+    print a.chromsome.sum()
+    print "***************"
+    print a.mat
+    print a.mat.sum()
+    print "***************"
+    print a.solution
+    print len(a.solution)

@@ -1,18 +1,18 @@
 from random import random, uniform
 from art_config import *
-
+import numpy as np
 
 class Mutation(object):
     def __init__(self, pm):
-        '''
-        Mutation operator with Flip Bit mutation implementation.
+        #if pm <= 0.0 or pm > 1.0:
+        #    raise ValueError('Invalid mutation probability')
 
-        :param pm: The probability of mutation (usually between 0.001 ~ 0.1)
-        :type pm: float in (0.0, 1.0]
-        '''
+        #self.pm = pm
+        self.setPm(pm)
+
+    def setPm(self, pm):
         if pm <= 0.0 or pm > 1.0:
             raise ValueError('Invalid mutation probability')
-
         self.pm = pm
 
     def mutate(self, individual, engine=None):
@@ -27,11 +27,14 @@ class Mutation(object):
                 if no_mutate:
                     continue
 
-                individual.chromsome[i] = int(random()*Nodes)
+                individual.chromsome[i] = self._random_gen() 
 
             # Update solution.
-            individual.solution = individual.decode()
+            individual.setChrom(individual.chromsome)
 
         return individual
 
-
+    def _random_gen(self):
+        tmp = np.random.random(GenLen)
+        return (tmp < Dencity)
+        
