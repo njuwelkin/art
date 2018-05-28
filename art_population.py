@@ -1,15 +1,17 @@
 from multiprocessing import Pool
 from art_individual import ArtIndividual
+from art_config import *
+import numpy as np
 
 class Population(object):
 
-    def __init__(self, fitness, size=100):
+    def __init__(self, fitness, size, processes = 4):
         if size % 2 != 0:
             raise ValueError('Population size must be an even number')
         self.size = size
         self._updated = False
         self._individuals = []
-        self._calc = MultTaskCalFitness(4, fitness)
+        self._calc = MultTaskCalFitness(processes, fitness) if processes > 1 else None
 
     def init(self, indvs=None):
         IndvType = ArtIndividual
@@ -30,6 +32,22 @@ class Population(object):
         self._updated = True
 
         return self
+
+    def save(self, path):
+        allChrom = np.zeros((self.size, self._individuals[0]._chromsome.size), dtype="bool")
+        for i in range(0, self.size):
+            allChrom[i] = self._individuals[i]._chromsome
+        np.save(path, allChrom)
+
+    def load(self, path):
+        allChrom = np.load(path)
+        assert allChrom.shape == (self.size, AllPossibleEdges)
+
+        self._individuals = []
+        for i in range(0, self.size):
+            chrom = allChrom[i].reshape((AllPossibleEdges/GenLen, GenLen))
+            self._individuals.append(ArtIndividual().setChrom(chrom)) 
+            self._updated = True
 
     def update_flag(self):
         '''
@@ -73,16 +91,14 @@ class Population(object):
         all_fits = self.all_fits(fitness)
         return sum(all_fits)/len(all_fits)
 
-
-
     def all_fits(self, fitness):
         if self._updated:
             self._updated = False
-            #self._fitness = [fitness(indv) for indv in self._individuals]
-            self._fitness = self._calc.calculate(self._individuals)
+            if self._calc is None:
+                self._fitness = [fitness(indv) for indv in self._individuals]
+            else:
+                self._fitness = self._calc.calculate(self._individuals)
         return self._fitness
-
-
 
 def cal_fitness_task(idx, part, fitness):
     return (idx, [fitness(a) for a in part])

@@ -55,6 +55,7 @@ class ArtIndividual(object):
         self._chromsome = chrom.ravel()
         self._gen_chrom_mat()
         self._gen_solution()
+        return self
 
     def _gen_solution(self):
         coo = sparse.coo_matrix(self.mat)

@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import math
 from art_population import *
@@ -17,8 +18,11 @@ def gen_weight():
     center = (VLen_f/2-0.5, VLen_f/2-0.5)
     for i in range(0, VLen):
         for j in range(0, VLen):
-            t = math.sqrt(math.fabs(VLen_f/2 - math.sqrt((i - center[0])**2 + (j - center[1])**2)))
-            w[i, j] = t if t > 0 else 0
+            #t = math.sqrt(math.fabs(VLen_f/2 - math.sqrt((i - center[0])**2 + (j - center[1])**2)))
+            d = VLen_f/2 - math.sqrt((i - center[0])**2 + (j - center[1])**2)
+            t = d if d > 0 else 0
+            t = math.sqrt(math.sqrt(t))
+            w[i, j] = t
     return w.reshape(VLen*VLen)
 
 def drawCanvas(solution):
@@ -77,11 +81,9 @@ class Engine(object):
             best_indv = self.population.best_indv(self.fitness)
             max = self.population.max(self.fitness)
 
-            #display(best_indv)
-            #if max / latestDrawMax > 1.1:
             if g % 100 == 0:
                 self.snapshot(best_indv, g, max)
-                #latestDrawMax = max
+                self.population.save("./output/population.npy")
 
             print("	max fitness %s" % self.population.max(self.fitness))
             print("	min fitness %s" % self.population.min(self.fitness))
@@ -101,53 +103,23 @@ class Engine(object):
             self.population.update_flag()
                 
 
-ARTDEBUG = False
-if __name__ == '__main__':
-    if not ARTDEBUG:
-        population = Population(fitness=fitness, size=1000)
+def main(argv):
+    resume = len(argv) > 1
+
+    population = Population(fitness=fitness, size=1000, processes = 4)
+    if not resume:
         population.init()
-
-        selection = RouletteWheelSelection()
-        crossover = UniformCrossover(pc=0.8, pe=0.5)
-        mutation = Mutation(pm=0.4)
-
-        engine = Engine(population, selection, crossover, mutation, fitness, 50000)
-
-        #cv2.namedWindow("cv2", 1)
-        engine.run()
-        #cv2.destroyAllWindows()
-
-
-
-    ########## test code ###########
     else:
-        print "p = Population(fitness=fitness, size=1000)"
-        p = Population(fitness=fitness, size=1000)
-        print "p.init()"
-        p.init()
-        print "best_indv = p.best_indv(fitness)"
-        print datetime.now()
-        best_indv = p.best_indv(fitness)
-        print datetime.now()
-        print p.max(fitness)
+        print "load"
+        population.load("./output/population.npy")
 
-        selection = RouletteWheelSelection()
-        art1, art2 = selection.select(p, fitness)
-        
+    selection = RouletteWheelSelection()
+    crossover = UniformCrossover(pc=0.8, pe=0.5)
+    mutation = Mutation(pm=0.4)
 
-        crossover = UniformCrossover(pc=0.8, pe=0.5)
-        for i in range(0, 10):
-            art3, art4 = crossover.cross(art1, art2)
-            print("(%s, %s)" % (sum(art3._chromsome ^ art1._chromsome), sum(art4._chromsome ^ art2._chromsome)))
+    engine = Engine(population, selection, crossover, mutation, fitness, 50000)
+    engine.run()
 
-        mutation = Mutation(pm=0.1)
-        for i in range(0, 20):
-            art3 = art1.clone()
-            mutation.mutate(art1)
-            if sum(art1._chromsome ^ art3._chromsome) !=0:
-                print(sum(art1._chromsome ^ art3._chromsome))
-
-
-
-
+if __name__ == '__main__':
+    main(sys.argv)
 
