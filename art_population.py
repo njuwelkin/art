@@ -78,8 +78,8 @@ class Population(object):
     def all_fits(self, fitness):
         if self._updated:
             self._updated = False
-            self._fitness = [fitness(indv) for indv in self._individuals]
-            #self._fitness = self._calc.calculate(self._individuals)
+            #self._fitness = [fitness(indv) for indv in self._individuals]
+            self._fitness = self._calc.calculate(self._individuals)
         return self._fitness
 
 

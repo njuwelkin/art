@@ -17,7 +17,7 @@ def gen_weight():
     center = (VLen_f/2-0.5, VLen_f/2-0.5)
     for i in range(0, VLen):
         for j in range(0, VLen):
-            t = VLen_f/2 - math.sqrt((i - center[0])**2 + (j - center[1])**2)
+            t = math.sqrt(math.fabs(VLen_f/2 - math.sqrt((i - center[0])**2 + (j - center[1])**2)))
             w[i, j] = t if t > 0 else 0
     return w.reshape(VLen*VLen)
 
@@ -29,14 +29,19 @@ def drawCanvas(solution):
 
 ap = ArtPortrait("./portrait.png")
 v2 = ap.v()
+print "v2", v2.reshape(VLen, VLen)
 w = gen_weight()
-maxD2 = sum(w * (v2**2))
+v2w = v2 * w
+d2 = sum(v2w**2)
 
 def fitness(indv):
     ac = drawCanvas(indv.solution)
     v1 = ac.v()
-    d2 = sum(w * ((v1 - v2) ** 2))
-    return (maxD2 / (d2 + 1))
+    v1w = v1 * w
+    tag = 1 if (v1*v2).sum() > 0 else 0.1
+    cos = (sum(v1w*v2w) ** 2) / (sum(v1w**2) * d2)  # cos(v1, v2) ^2
+    return tag * cos
+
 
 def display(indv):
     ac = drawCanvas(indv.solution)
@@ -60,12 +65,12 @@ class Engine(object):
         if g == self.ng / 10:
             self.mutation.setPm(0.1)
         elif g == self.ng / 100:
-            self.mutation.setPm(0.125)
+            self.mutation.setPm(0.1)
         elif g == 0:
-            self.mutation.setPm(0.15)
+            self.mutation.setPm(0.1)
 
     def run(self):
-        latestDrawMax = 0.5
+        #latestDrawMax = 0.5
         for g in range(self.ng):
             self.changePm(g)
             print("Generation %s start on %s" % (g, datetime.now()))
@@ -73,9 +78,10 @@ class Engine(object):
             max = self.population.max(self.fitness)
 
             #display(best_indv)
-            if max / latestDrawMax > 1.1:
+            #if max / latestDrawMax > 1.1:
+            if g % 100 == 0:
                 self.snapshot(best_indv, g, max)
-                latestDrawMax = max
+                #latestDrawMax = max
 
             print("	max fitness %s" % self.population.max(self.fitness))
             print("	min fitness %s" % self.population.min(self.fitness))

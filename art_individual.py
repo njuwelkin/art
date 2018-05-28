@@ -42,7 +42,8 @@ class ArtIndividual(object):
 
         if initMethod == 1:    # random
             tmp = np.random.random(AllPossibleEdges)
-            chrom = (tmp < Dencity).reshape((AllPossibleEdges/GenLen, GenLen))
+            chrom = (tmp < (Dencity)).reshape((AllPossibleEdges/GenLen, GenLen))
+            #chrom = (tmp < (0.1)).reshape((AllPossibleEdges/GenLen, GenLen))
             self.setChrom(chrom)
         elif initMethod == 2:
             chrom = _chromTemplet.copy()
