@@ -1,17 +1,18 @@
 from multiprocessing import Pool
-from art_individual import ArtIndividual
+from art_individual import *
 from art_config import *
 import numpy as np
 
 class Population(object):
 
-    def __init__(self, fitness, size, processes = 1):
+    def __init__(self, size, processes = 1):
         if size % 2 != 0:
             raise ValueError('Population size must be an even number')
         self.size = size
         self._updated = False
         self._individuals = []
-        self._calc = MultTaskCalFitness(processes, fitness) if processes > 1 else None
+        self._calc = MultTaskCalFitness(processes, cal_fitness_task) if processes > 1 else None
+        self.fitFactor = 1
 
     def init(self, indvs=None):
         IndvType = ArtIndividual
@@ -38,7 +39,7 @@ class Population(object):
         for i, indv in enumerate(self._individuals):
             for j, t in enumerate(indv.chromsome):
                 all_chrom[i,j,0] = t.vertex
-                all_chrom[i,j,1] = zip(indv.color, (0, 0, 0))
+                all_chrom[i,j,1] = zip(t.color, (0, 0, 0))
         np.save(path, all_chrom)
 
     def load(self, path):
@@ -95,21 +96,21 @@ class Population(object):
         if self._updated:
             self._updated = False
             if self._calc is None:
-                self._fitness = [fitness(indv) for indv in self._individuals]
+                self._fitness = [fitness(indv)**self.fitFactor for indv in self._individuals]
             else:
-                self._fitness = self._calc.calculate(self._individuals)
+                self._fitness = self._calc.calculate(self._individuals, fitness, self.fitFactor)
         return self._fitness
 
-def cal_fitness_task(idx, part, fitness):
-    return (idx, [fitness(a) for a in part])
+def cal_fitness_task(idx, part, fitness, factor):
+    return (idx, [fitness(a)**factor for a in part])
 
 class MultTaskCalFitness(object):
-    def __init__(self, processes, fitness):
+    def __init__(self, processes, callback):
         self.processes = processes
         self.pool = Pool(processes=4)
-        self.fitness = fitness
+        self.callback = callback
 
-    def calculate(self, l):
+    def calculate(self, l, fitness, factor):
         results= []
         start = 0
         total_len = len(l)
@@ -120,7 +121,7 @@ class MultTaskCalFitness(object):
                 end = total_len
 
             part = l[start:start+part_len]
-            ret = self.pool.apply_async(cal_fitness_task, args=(i, part, self.fitness))
+            ret = self.pool.apply_async(self.callback, args=(i, part, fitness, factor))
             results.append(ret)
 
         real_results = [r.get() for r in results]
@@ -133,5 +134,13 @@ class MultTaskCalFitness(object):
 
 
 
-
-
+if __name__ == '__main__':
+    p = Population(None, 10)
+    p.init()
+    p.save("history/test.npy")
+    p2 = Population(None, 10)
+    p2.load("history/test.npy")
+    print p2._individuals[0]
+    print p2._individuals[0].chromsome[0]
+    print p2._individuals[0].chromsome[0].vertex
+    print p._individuals[0].chromsome[0].vertex

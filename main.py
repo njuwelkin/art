@@ -16,7 +16,7 @@ from datetime import datetime
 ap = ArtPortrait("./firefox.png")
 v2 = ap.v()
 v2 = np.array(v2, dtype="float64")
-maxD2 = 256*256*VLen*VLen*3
+#maxD2 = 256*256*VLen*VLen*3
 
 def fitnessCos(indv):
     ac = ArtCanvas(indv)
@@ -31,7 +31,7 @@ def fitness(indv):
     v1 = ac.v()
     v1 = np.array(v1, dtype="float64")
     d2 = sum((v1 - v2)**2)
-    return maxD2 / (d2+1)
+    return 1 / (d2+1)
 
 def display(indv):
     ac = ArtCanvas(invd)
@@ -52,16 +52,17 @@ class Engine(object):
         ac.save("./output/g%s_fit%s.jpg" % (g, max))
 
     def changePm(self, g):
-        if g == self.ng / 10:
-            self.mutation.setPm(0.02)
-        elif g == self.ng / 100:
+        if g == self.ng / 2:
             self.mutation.setPm(0.05)
+        elif g == self.ng / 4:
+            self.mutation.setPm(0.1)
         elif g == 0:
             self.mutation.setPm(0.1)
 
     def run(self):
         #latestDrawMax = 0.5
         for g in range(self.ng):
+
             self.changePm(g)
             print("Generation %s start on %s" % (g, datetime.now()))
             best_indv = self.population.best_indv(self.fitness)
@@ -69,11 +70,22 @@ class Engine(object):
 
             if g % 5 == 0:
                 self.snapshot(best_indv, g, max)
-                self.population.save("./output/population.npy")
+                if g % 100 == 0:
+                    self.population.save("./history/population%s.npy" % g)
 
-            print("	max fitness %s" % self.population.max(self.fitness))
-            print("	min fitness %s" % self.population.min(self.fitness))
+            maxfit = self.population.max(self.fitness)
+            meanfit = self.population.mean(self.fitness)
+            minfit = self.population.min(self.fitness)
+            print("     max     fitness %s" % maxfit)
+            print("     mean    fitness %s" % meanfit)
+            print("     min     fitness %s" % minfit)
+            print("     fitFactor: %s" % self.population.fitFactor)
 
+            if (maxfit / minfit) < 2:
+                self.population.fitFactor += 1
+            elif (maxfit / minfit) > 4:
+                fitFactor = self.population.fitFactor
+                self.population.fitFactor = 1 if fitFactor == 1 else (fitFactor-1)
 
             indvs = []
             local_size = self.population.size // 2
@@ -91,7 +103,7 @@ class Engine(object):
 def main(argv):
     resume = len(argv) > 1
 
-    population = Population(fitness=fitness, size=100, processes = 4)
+    population = Population(size=100, processes = 4)
     if not resume:
         population.init()
     else:
