@@ -1,18 +1,14 @@
 import cv2
 import numpy as np
-from math import pi, sin, cos
 from art_config import *
 
 def _getV(img):
-    res = cv2.resize(img, (VLen, VLen)).reshape(VLen*VLen)
-    avg = res.sum() / res.size
-    #return (res < avg)*2.0 - 1
-    return 1.0*res - avg
+    res = cv2.resize(img, (VLen, VLen)).reshape(VLen*VLen*3)
+    return res
 
 class ArtPortrait(object):
     def __init__(self, path):
-        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        assert(img.shape[0] == img.shape[1])
+        img = cv2.imread(path)
 
         self._v = _getV(img)
 
@@ -20,37 +16,35 @@ class ArtPortrait(object):
         return self._v
 
 class ArtCanvas(object):
-    Size = 2048
-    R = Size/2
-    Center = (R, R)
-    Anchors = [(R-int(cos(i*2*pi/Nodes)*R), R+int(sin(i*2*pi/Nodes)*R)) for i in range(0, Nodes)]
 
-    def __init__(self):
-        self._canvas = np.ones((ArtCanvas.Size, ArtCanvas.Size), dtype="uint8") *255
-        self._updated = True
-
-
-    def line(self, idx1, idx2):
-        Anchors = ArtCanvas.Anchors
-        cv2.line(self._canvas, Anchors[idx1], Anchors[idx2], 0, 1)
-        self._updated = True
+    def __init__(self, indv, transparentFactor=4):
+        self.canvas = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")
+        canvasUint64 = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint64")
+        for i, t in enumerate(indv.chromsome):
+            tmpCanvas = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")
+            v = np.array(t.vertex).reshape((-1,1,2))
+            tmpCanvas = cv2.fillPoly(tmpCanvas, [v], t.color)
+            canvasUint64 += tmpCanvas
+        self.canvas = 255-np.uint8(np.clip(canvasUint64/transparentFactor, 0, 255))
+        self._v = _getV(self.canvas)
 
     def v(self):
-        if self._updated:
-            self._v = _getV(self._canvas)
-            self._updated = False
         return self._v
 
     def save(self, path):
-        cv2.imwrite(path, self._canvas)
+        cv2.imwrite(path, self.canvas)
 
 
 if __name__ == '__main__':
-    ac = ArtCanvas()
-    for i in range (1, len(ArtCanvas.Anchors)):
-        ac.line(0, i)
+    from art_individual import *
+    from datetime import datetime
 
     cv2.namedWindow("img", 1)
-    cv2.imshow("img", ac._canvas)
+    print datetime.now()
+    indv = ArtIndividual()
+    ac = ArtCanvas(indv)
+    print datetime.now()
+
+    cv2.imshow("img", ac.canvas)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

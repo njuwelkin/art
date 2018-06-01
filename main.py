@@ -12,44 +12,30 @@ from art_config import *
 
 from datetime import datetime
 
-def gen_weight():
-    w = np.zeros((VLen, VLen), dtype="float64")
-    VLen_f = float(VLen)
-    center = (VLen_f/2-0.5, VLen_f/2-0.5)
-    for i in range(0, VLen):
-        for j in range(0, VLen):
-            #t = math.sqrt(math.fabs(VLen_f/2 - math.sqrt((i - center[0])**2 + (j - center[1])**2)))
-            d = VLen_f/2 - math.sqrt((i - center[0])**2 + (j - center[1])**2)
-            t = d if d > 0 else 0
-            t = math.sqrt(math.sqrt(t))
-            w[i, j] = t
-    return w.reshape(VLen*VLen)
 
-def drawCanvas(solution):
-    ac = ArtCanvas()
-    for s in solution:
-        ac.line(s[0], s[1])
-    return ac
-
-ap = ArtPortrait("./portrait.png")
+ap = ArtPortrait("./firefox.png")
 v2 = ap.v()
-print "v2", v2.reshape(VLen, VLen)
-w = gen_weight()
-v2w = v2 * w
-d2 = sum(v2w**2)
+v2 = np.array(v2, dtype="float64")
+maxD2 = 256*256*VLen*VLen*3
+
+def fitnessCos(indv):
+    ac = ArtCanvas(indv)
+    v1 = ac.v()
+    v1 = np.array(v1, dtype="float64")
+    a = v1 - v1.sum()/v1.size
+    b = v2 - v1.sum()/v2.size
+    return (sum(a*b)**2 / (sum(v1**2) * sum(v2**2)))
 
 def fitness(indv):
-    ac = drawCanvas(indv.solution)
+    ac = ArtCanvas(indv)
     v1 = ac.v()
-    v1w = v1 * w
-    tag = 1 if (v1*v2).sum() > 0 else 0.1
-    cos = (sum(v1w*v2w) ** 2) / (sum(v1w**2) * d2)  # cos(v1, v2) ^2
-    return tag * cos
-
+    v1 = np.array(v1, dtype="float64")
+    d2 = sum((v1 - v2)**2)
+    return maxD2 / (d2+1)
 
 def display(indv):
-    ac = drawCanvas(indv.solution)
-    cv2.imshow("cv2", ac._canvas)
+    ac = ArtCanvas(invd)
+    cv2.imshow("cv2", ac.canvas)
     cv2.waitKey(100)
 
 class Engine(object):
@@ -62,14 +48,14 @@ class Engine(object):
         self.ng = ng
 
     def snapshot(self, best_indv, g, max):
-        ac = drawCanvas(best_indv.solution)
+        ac = ArtCanvas(best_indv)
         ac.save("./output/g%s_fit%s.jpg" % (g, max))
 
     def changePm(self, g):
         if g == self.ng / 10:
-            self.mutation.setPm(0.1)
+            self.mutation.setPm(0.02)
         elif g == self.ng / 100:
-            self.mutation.setPm(0.1)
+            self.mutation.setPm(0.05)
         elif g == 0:
             self.mutation.setPm(0.1)
 
@@ -81,13 +67,12 @@ class Engine(object):
             best_indv = self.population.best_indv(self.fitness)
             max = self.population.max(self.fitness)
 
-            if g % 100 == 0:
+            if g % 5 == 0:
                 self.snapshot(best_indv, g, max)
                 self.population.save("./output/population.npy")
 
             print("	max fitness %s" % self.population.max(self.fitness))
             print("	min fitness %s" % self.population.min(self.fitness))
-            print("	total edges of best_indv: %s" % best_indv._chromsome.sum())
 
 
             indvs = []
@@ -106,7 +91,7 @@ class Engine(object):
 def main(argv):
     resume = len(argv) > 1
 
-    population = Population(fitness=fitness, size=1000, processes = 4)
+    population = Population(fitness=fitness, size=100, processes = 4)
     if not resume:
         population.init()
     else:

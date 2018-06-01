@@ -1,5 +1,6 @@
 from random import random, uniform
 from art_config import *
+from art_individual import *
 import numpy as np
 
 class Mutation(object):
@@ -27,7 +28,7 @@ class Mutation(object):
                 if no_mutate:
                     continue
 
-                individual.chromsome[i] = self._random_gen() 
+                individual.chromsome[i] = Triangle(rand=True)
 
             # Update solution.
             individual.setChrom(individual.chromsome)

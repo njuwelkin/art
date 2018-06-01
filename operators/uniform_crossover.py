@@ -27,7 +27,7 @@ class UniformCrossover(object):
             if do_exchange:
                 chrom1[i], chrom2[i] = g2, g1
 
-        child1, child2 = father.__class__(), father.__class__()
+        child1, child2 = father.__class__(rand=False), father.__class__(rand=False)
         child1.setChrom(chrom1)
         child2.setChrom(chrom2)
 

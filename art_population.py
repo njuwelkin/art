@@ -5,7 +5,7 @@ import numpy as np
 
 class Population(object):
 
-    def __init__(self, fitness, size, processes = 4):
+    def __init__(self, fitness, size, processes = 1):
         if size % 2 != 0:
             raise ValueError('Population size must be an even number')
         self.size = size
@@ -18,14 +18,14 @@ class Population(object):
 
         if indvs is None:
             for _ in range(self.size):
-                indv = IndvType(1)
+                indv = IndvType()
                 self._individuals.append(indv)
         else:
             # Check individuals.
             if len(indvs) != self.size:
                 raise ValueError('Invalid individuals number')
             for indv in indvs:
-                if not isinstance(indv, IndividualBase):
+                if not isinstance(indv, IndvType):
                     raise ValueError('individual class must be subclass of IndividualBase')
             self.individuals = indvs
 
@@ -34,34 +34,34 @@ class Population(object):
         return self
 
     def save(self, path):
-        allChrom = np.zeros((self.size, self._individuals[0]._chromsome.size), dtype="bool")
-        for i in range(0, self.size):
-            allChrom[i] = self._individuals[i]._chromsome
-        np.save(path, allChrom)
+        all_chrom = np.zeros((self.size, ChromLen, 2, 3, 2), dtype="uint64")
+        for i, indv in enumerate(self._individuals):
+            for j, t in enumerate(indv.chromsome):
+                all_chrom[i,j,0] = t.vertex
+                all_chrom[i,j,1] = zip(indv.color, (0, 0, 0))
+        np.save(path, all_chrom)
 
     def load(self, path):
-        allChrom = np.load(path)
-        assert allChrom.shape == (self.size, AllPossibleEdges)
-
-        self._individuals = []
+        all_chrom = np.load(path)
         for i in range(0, self.size):
-            chrom = allChrom[i].reshape((AllPossibleEdges/GenLen, GenLen))
-            self._individuals.append(ArtIndividual().setChrom(chrom)) 
-            self._updated = True
+            indv = ArtIndividual(rand=False)
+            chroms = []
+            for j in range(0, ChromLen):
+                v = all_chrom[i, j, 0]
+                vertex = (tuple(v[0]), tuple(v[1]), tuple(v[2]))
+                c = all_chrom[i, j, 1]
+                color = tuple(c[:, 0])
+                t = Triangle(vertex, color)
+                chroms.append(t)
+            indv.setChrom(chroms)
+            self._individuals.append(indv)
 
     def update_flag(self):
-        '''
-        Interface for updating individual update flag to True.
-        '''
         self._updated = True
 
     @property
     def updated(self):
         return self._updated
-
-    def new(self):
-        return self.__class__(indv_template=self.indv_template,
-                              size=self.size)
 
     def __getitem__(self, key):
         if key < 0 or key >= self.size:
