@@ -17,23 +17,14 @@ class ArtPortrait(object):
 
 class ArtCanvas(object):
 
-    def __init__(self, indv, transparentFactor=8):
+    def __init__(self, indv=None, transparentFactor=8):
         self.canvas = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")
-        countArray = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")
-        canvasFloat64 = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint64")
-        for i, t in enumerate(indv.chromsome):
-            tmpCanvas = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")
-            v = np.array(t.vertex).reshape((-1,1,2))
-            tmpCanvas = cv2.fillPoly(tmpCanvas, [v], t.color)
-            countArray += (tmpCanvas > 0)
-            #cv2.imshow("img", countArray*25)
-            #cv2.waitKey(0)
-            canvasFloat64 += tmpCanvas
-        countArray += (countArray==0)
-        canvasFloat64 = np.clip((canvasFloat64/countArray), 0, 255)
-        self.canvas = np.uint8(canvasFloat64)
-        self.canvas += np.uint8((self.canvas == 0) * 255)
-        self._v = _getV(self.canvas)
+        self.countArray = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")
+        self.canvasFloat64 = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint64")
+        if indv is not None:
+            for i, t in enumerate(indv.chromsome):
+                self._addTriangle(t)
+        self.update()
 
     def v(self):
         return self._v
@@ -41,6 +32,32 @@ class ArtCanvas(object):
     def save(self, path):
         cv2.imwrite(path, self.canvas)
 
+    def _addTriangle(self, t):
+        tmpCanvas = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")
+        v = np.array(t.vertex).reshape((-1,1,2))
+        tmpCanvas = cv2.fillPoly(tmpCanvas, [v], t.color)
+        self.countArray += (tmpCanvas > 0)
+        self.canvasFloat64 += tmpCanvas
+
+    def _removeTriangle(self, t):
+        tmpCanvas = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")
+        v = np.array(t.vertex).reshape((-1,1,2))
+        tmpCanvas = cv2.fillPoly(tmpCanvas, [v], t.color)
+        self.countArray -= (tmpCanvas > 0)
+        self.canvasFloat64 -= tmpCanvas
+
+    def addTriangle(self, t):
+        self._addTriangle(t)
+        self.update()
+
+    def removeTriangle(self, t):
+        self._removeTriangle(t)
+        self.update()
+
+    def update(self):
+        self.canvas = np.uint8(np.clip((self.canvasFloat64/(self.countArray+(self.countArray==0))), 0, 255))
+        self.canvas += np.uint8((self.canvas == 0) * 255)
+        self._v = _getV(self.canvas)
 
 if __name__ == '__main__':
     from art_individual import *
