@@ -31,6 +31,13 @@ class ArtCanvas(object):
 
     def save(self, path):
         cv2.imwrite(path, self.canvas)
+        np.save("%s_countArray.npy" % path, self.countArray)
+        np.save("%s_canvasFloat64.npy" % path, self.canvasFloat64)
+
+    def load(self, path):
+        self.countArray = np.load("%s_countArray.npy" % path)
+        self.canvasFloat64 = np.load("%s_canvasFloat64.npy" % path)
+        self.update()
 
     def _addTriangle(self, t):
         tmpCanvas = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")

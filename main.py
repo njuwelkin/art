@@ -53,11 +53,11 @@ class Engine(object):
 
     def changePm(self, g):
         if g == self.ng / 2:
-            self.mutation.setPm(0.05)
+            self.mutation.setPm(0.01)
         elif g == self.ng / 4:
-            self.mutation.setPm(0.1)
+            self.mutation.setPm(0.01)
         elif g == 0:
-            self.mutation.setPm(0.1)
+            self.mutation.setPm(0.01)
 
     def run(self):
         #latestDrawMax = 0.5
@@ -111,7 +111,7 @@ def main(argv):
         population.load(argv[1])
 
     selection = RouletteWheelSelection()
-    crossover = UniformCrossover(pc=0.8, pe=0.5)
+    crossover = UniformCrossover(pc=0.8, pe=0.1)
     mutation = Mutation(pm=0.4)
 
     engine = Engine(population, selection, crossover, mutation, fitness, 50000)

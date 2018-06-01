@@ -37,7 +37,25 @@ class ArtIndividual(object):
         indv.setChrom(deepcopy(self.chromsome))
         return indv
 
+    def save(self, path):
+        chrom_npy = np.zeros((ChromLen, 2, 3, 2), dtype="uint64")
+        for j, t in enumerate(self.chromsome):
+            chrom_npy[j,0] = t.vertex
+            chrom_npy[j,1] = zip(t.color, (0, 0, 0))
+        np.save(path, chrom_npy)
 
+    def load(self, path):
+        chrom_npy = np.load(path)
+        chroms = []
+        for j in range(0, ChromLen):
+            v = all_chrom[i, j, 0]
+            vertex = (tuple(v[0]), tuple(v[1]), tuple(v[2]))
+            c = all_chrom[i, j, 1]
+            color = (int(c[0, 0]), int(c[1, 0]), int(c[2, 0]))
+            t = Triangle(vertex, color)
+            chroms.append(t)
+        self.setChrom(chroms)
+        return self
 
 
 if __name__ == '__main__':
