@@ -17,15 +17,22 @@ class ArtPortrait(object):
 
 class ArtCanvas(object):
 
-    def __init__(self, indv, transparentFactor=4):
+    def __init__(self, indv, transparentFactor=8):
         self.canvas = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")
-        canvasUint64 = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint64")
+        countArray = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")
+        canvasFloat64 = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint64")
         for i, t in enumerate(indv.chromsome):
             tmpCanvas = np.zeros((CanvasSize, CanvasSize, 3), dtype="uint8")
             v = np.array(t.vertex).reshape((-1,1,2))
             tmpCanvas = cv2.fillPoly(tmpCanvas, [v], t.color)
-            canvasUint64 += tmpCanvas
-        self.canvas = 255-np.uint8(np.clip(canvasUint64/transparentFactor, 0, 255))
+            countArray += (tmpCanvas > 0)
+            #cv2.imshow("img", countArray*25)
+            #cv2.waitKey(0)
+            canvasFloat64 += tmpCanvas
+        countArray += (countArray==0)
+        canvasFloat64 = np.clip((canvasFloat64/countArray), 0, 255)
+        self.canvas = np.uint8(canvasFloat64)
+        self.canvas += np.uint8((self.canvas == 0) * 255)
         self._v = _getV(self.canvas)
 
     def v(self):
@@ -38,6 +45,7 @@ class ArtCanvas(object):
 if __name__ == '__main__':
     from art_individual import *
     from datetime import datetime
+    ChromLen = 10
 
     cv2.namedWindow("img", 1)
     print datetime.now()
