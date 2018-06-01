@@ -51,11 +51,12 @@ class Population(object):
                 v = all_chrom[i, j, 0]
                 vertex = (tuple(v[0]), tuple(v[1]), tuple(v[2]))
                 c = all_chrom[i, j, 1]
-                color = tuple(c[:, 0])
+                color = (int(c[0, 0]), int(c[1, 0]), int(c[2, 0]))
                 t = Triangle(vertex, color)
                 chroms.append(t)
             indv.setChrom(chroms)
             self._individuals.append(indv)
+        self._updated = True
 
     def update_flag(self):
         self._updated = True

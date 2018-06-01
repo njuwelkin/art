@@ -108,7 +108,7 @@ def main(argv):
         population.init()
     else:
         print "load"
-        population.load("./output/population.npy")
+        population.load(argv[1])
 
     selection = RouletteWheelSelection()
     crossover = UniformCrossover(pc=0.8, pe=0.5)
